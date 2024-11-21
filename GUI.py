@@ -40,10 +40,12 @@ class FieldObject:
             )
 
     def move_to(self, x, y):
-        """Move the object to a new position."""
-        dx, dy = x - self.x, y - self.y
-        self.canvas.move(self.object_id, dx * GRID_SIZE, dy * GRID_SIZE)
-        self.x, self.y = x, y  # Update grid position
+        self.canvas.coords(
+            self.object_id,
+            x * GRID_SIZE, y * GRID_SIZE,
+            (x + 1) * GRID_SIZE, (y + 1) * GRID_SIZE
+        )
+        self.x, self.y = x, y
 
 
 class Robot:
@@ -72,7 +74,7 @@ class ObjectFieldApp:
         self.root.title("Object Field with A* Pathfinding")
 
         # Set up canvas and grid
-        self.canvas = tk.Canvas(root, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg="black")
+        self.canvas = tk.Canvas(root, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg="white")
         self.canvas.pack()
 
         self.objects = []
@@ -138,11 +140,6 @@ class ObjectFieldApp:
             self.setting_destination = False
             return
 
-        for obj in self.objects:
-            if (obj.x, obj.y) == (x, y):
-                self.selected_object = obj
-                return
-
     def drag_object(self, event):
         if self.selected_object:
             x, y = event.x // GRID_SIZE, event.y // GRID_SIZE
@@ -197,9 +194,15 @@ class ObjectFieldApp:
                     (x + 1) * GRID_SIZE - GRID_SIZE // 4, (y + 1) * GRID_SIZE - GRID_SIZE // 4,
                     fill="lightblue", tags="path"
                 )
+            self.move_robot_along_path()
+
+    def move_robot_along_path(self):
+        """Move the robot along the calculated path with animation."""
+        if self.path:
             for (x, y) in self.path:
                 self.robot.move_to(x, y)
                 self.root.update()
+                self.root.after(200)  # Pause for animation effect
 
     def a_star(self, start, goal):
         open_set = []
@@ -227,6 +230,15 @@ class ObjectFieldApp:
                         g_score[neighbor] = tentative_g_score
                         f_score[neighbor] = tentative_g_score + self.heuristic(neighbor, goal)
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
+
+            # Visualize explored nodes
+            if current != start and current != goal:
+                self.canvas.create_rectangle(
+                    x * GRID_SIZE + GRID_SIZE // 4, y * GRID_SIZE + GRID_SIZE // 4,
+                    (x + 1) * GRID_SIZE - GRID_SIZE // 4, (y + 1) * GRID_SIZE - GRID_SIZE // 4,
+                    fill="yellow", tags="explored"
+                )
+                self.root.update()
 
         return []
 
